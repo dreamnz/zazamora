@@ -1,0 +1,30 @@
+name: Compilar APK
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Descomprimir proyecto
+        run: unzip -q *.zip
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Compilar APK
+        working-directory: zazamora
+        run: |
+          gradle :app:assembleDebug --no-daemon --console=plain > build.log 2>&1 || {
+            echo "=========== ERRORES ==========="
+            grep -nE "^e: |What went wrong|Execution failed|error:|Unresolved|Caused by" -A4 build.log | head -60
+            exit 1
+          }
+      - name: Renombrar
+        run: cp zazamora/app/build/outputs/apk/debug/app-debug.apk zazamora-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zazamora-debug-apk
+          path: zazamora-debug.apk
